@@ -399,6 +399,9 @@ const (
 	IDVia             = ID(0xC7)
 	IDWhile           = ID(0xC8)
 	IDYield           = ID(0xC9)
+	IDCapability      = ID(0xCA)
+	IDEnv             = ID(0xCB)
+	IDStr             = ID(0xCC)
 )
 
 const (
@@ -413,6 +416,8 @@ const (
 	IDRotable = ID(0xD5)
 	IDSlice   = ID(0xD6)
 	IDTable   = ID(0xD7)
+	IDArena   = ID(0xD8)
+	IDVec     = ID(0xD9)
 )
 
 const (
@@ -850,6 +855,9 @@ var builtInsByID = [nBuiltInIDs]string{
 	IDVia:             "via",
 	IDWhile:           "while",
 	IDYield:           "yield",
+	IDCapability:      "capability",
+	IDEnv:             "env",
+	IDStr:             "str",
 
 	IDArray:   "array",
 	IDNptr:    "nptr",
@@ -859,6 +867,8 @@ var builtInsByID = [nBuiltInIDs]string{
 	IDRotable: "rotable",
 	IDSlice:   "slice",
 	IDTable:   "table",
+	IDArena:   "arena",
+	IDVec:     "vec",
 
 	IDFalse:   "false",
 	IDTrue:    "true",

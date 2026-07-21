@@ -507,7 +507,7 @@ func (p *parser) parseTypeExpr() (*a.TypeExpr, error) {
 
 	decorator, arrayLength := t.ID(0), (*a.Expr)(nil)
 	switch peek1 := p.peek1(); peek1 {
-	case t.IDArray, t.IDRoarray:
+	case t.IDArray, t.IDRoarray, t.IDArena, t.IDVec:
 		decorator = peek1
 		p.src = p.src[1:]
 
