@@ -66,3 +66,33 @@ wuffs_base__malloc_slice_u64(void* (*malloc_func)(size_t), uint64_t num_u64) {
   }
   return wuffs_base__empty_slice_u64();
 }
+
+// ---------------- Arena & Vector Types
+
+typedef struct {
+  uint8_t* ptr;
+  size_t   len;
+  size_t   offset;
+} wuffs_base__arena;
+
+static inline wuffs_base__arena
+wuffs_base__make_arena(uint8_t* ptr, size_t len) {
+  wuffs_base__arena ret;
+  ret.ptr = ptr;
+  ret.len = len;
+  ret.offset = 0;
+  return ret;
+}
+
+typedef struct {
+  uint8_t* data;
+  uint32_t len;
+  uint32_t cap;
+  uint32_t elem_size;
+} wuffs_base__vec;
+
+typedef struct {
+  const uint8_t* ptr;
+  uint32_t       len;
+} wuffs_base__str;
+
