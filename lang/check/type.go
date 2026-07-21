@@ -1235,7 +1235,7 @@ swtch:
 		}
 		return fmt.Errorf("check: %q is not a type", typ.Str(q.tm))
 
-	case t.IDArray, t.IDRoarray:
+	case t.IDArray, t.IDRoarray, t.IDArena, t.IDVec:
 		aLen := typ.ArrayLength()
 		if err := q.tcheckExpr(aLen, 0); err != nil {
 			return err

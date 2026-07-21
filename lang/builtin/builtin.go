@@ -333,6 +333,12 @@ var Types = []string{
 	"token_reader",
 	"token_writer",
 
+	"arena",
+	"vec",
+	"str",
+	"env",
+	"capability",
+
 	"frame_config",
 	"image_config",
 	"pixel_blend",
@@ -392,6 +398,20 @@ var funcsOther = [...]string{
 	"u64.min(no_more_than: u64) u64",
 
 	"bitvec256.get_u64(i: u32[..=3]) u64",
+
+	// ---- arena, vec, str, env
+	"arena.mark() u64",
+	"arena.release!(mark: u64)",
+
+	"vec.length() u32",
+	"vec.capacity() u32",
+
+	"str.length() u32",
+	"str.as_slice() slice u8",
+
+	"env.stdout() io_writer",
+	"env.stderr() io_writer",
+	"env.args() slice u8",
 
 	// ---- utility
 

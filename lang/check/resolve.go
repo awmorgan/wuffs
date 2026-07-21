@@ -66,6 +66,12 @@ var (
 	typeExprTokenReader = a.NewTypeExpr(0, t.IDBase, t.IDTokenReader, nil, nil, nil)
 	typeExprTokenWriter = a.NewTypeExpr(0, t.IDBase, t.IDTokenWriter, nil, nil, nil)
 
+	typeExprArena      = a.NewTypeExpr(0, t.IDBase, t.IDArena, nil, nil, nil)
+	typeExprVec        = a.NewTypeExpr(0, t.IDBase, t.IDVec, nil, nil, nil)
+	typeExprStr        = a.NewTypeExpr(0, t.IDBase, t.IDStr, nil, nil, nil)
+	typeExprEnv        = a.NewTypeExpr(0, t.IDBase, t.IDEnv, nil, nil, nil)
+	typeExprCapability = a.NewTypeExpr(0, t.IDBase, t.IDCapability, nil, nil, nil)
+
 	typeExprFrameConfig   = a.NewTypeExpr(0, t.IDBase, t.IDFrameConfig, nil, nil, nil)
 	typeExprImageConfig   = a.NewTypeExpr(0, t.IDBase, t.IDImageConfig, nil, nil, nil)
 	typeExprPixelBlend    = a.NewTypeExpr(0, t.IDBase, t.IDPixelBlend, nil, nil, nil)
@@ -138,6 +144,12 @@ var builtInTypeMap = typeMap{
 	t.IDIOWriter:    typeExprIOWriter,
 	t.IDTokenReader: typeExprTokenReader,
 	t.IDTokenWriter: typeExprTokenWriter,
+
+	t.IDArena:      typeExprArena,
+	t.IDVec:        typeExprVec,
+	t.IDStr:        typeExprStr,
+	t.IDEnv:        typeExprEnv,
+	t.IDCapability: typeExprCapability,
 
 	t.IDFrameConfig:   typeExprFrameConfig,
 	t.IDImageConfig:   typeExprImageConfig,

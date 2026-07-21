@@ -102,7 +102,10 @@ func (x ID) IsSQStrLiteral(m *Map) bool {
 
 func (x ID) IsIdent(m *Map) bool {
 	if x < nBuiltInIDs {
-		return minBuiltInIdent <= x && x <= maxBuiltInIdent
+		if minBuiltInIdent <= x && x <= maxBuiltInIdent {
+			return true
+		}
+		return x.IsKeyword() || x.IsTypeModifier()
 	} else if s := m.ByID(x); s != "" {
 		return alpha(s[0])
 	}
@@ -120,6 +123,7 @@ func (x ID) IsBuiltInCPUArchARMNeon() bool {
 func (x ID) IsCannotAssignTo() bool { return minCannotAssignTo <= x && x <= maxCannotAssignTo }
 func (x ID) IsClose() bool          { return minClose <= x && x <= maxClose }
 func (x ID) IsKeyword() bool        { return minKeyword <= x && x <= maxKeyword }
+func (x ID) IsTypeModifier() bool   { return minTypeModifier <= x && x <= maxTypeModifier }
 func (x ID) IsNumType() bool        { return minNumType <= x && x <= maxNumType }
 func (x ID) IsNumTypeOrIdeal() bool { return minNumTypeOrIdeal <= x && x <= maxNumTypeOrIdeal }
 func (x ID) IsRangeType() bool      { return minRangeType <= x && x <= maxRangeType }
