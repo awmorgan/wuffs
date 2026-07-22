@@ -147,11 +147,10 @@ func (p *parser) parseTopLevelDecl() (*a.Node, error) {
 			return nil, fmt.Errorf(`parse: expected "-string literal, got %q at %s:%d`, got, p.filename, p.line())
 		}
 		p.src = p.src[1:]
-		if x := p.peek1(); x != t.IDSemicolon {
-			got := p.tm.ByID(x)
-			return nil, fmt.Errorf(`parse: expected (implicit) ";", got %q at %s:%d`, got, p.filename, p.line())
+		if x := p.peek1(); x == t.IDSemicolon {
+			p.src = p.src[1:]
 		}
-		p.src = p.src[1:]
+		return a.NewUse(p.filename, line, path).AsNode(), nil
 	case t.IDPragma:
 		p.src = p.src[1:]
 		_, err := p.parseIdent()

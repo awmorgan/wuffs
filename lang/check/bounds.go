@@ -264,6 +264,7 @@ func (q *checker) bcheckBlock(block []*a.Node) error {
 }
 
 func (q *checker) bcheckStatement(n *a.Node) error {
+	defer n.SetMBounds(bounds{zero, zero})
 	switch n.Kind() {
 	case a.KAssert:
 		if err := q.bcheckAssert(n.AsAssert()); err != nil {
@@ -374,6 +375,7 @@ func (q *checker) bcheckStatement(n *a.Node) error {
 				}
 			}
 		}
+		n.AsNode().SetMBounds(bounds{zero, zero})
 
 	case a.KVar:
 		if err := q.bcheckVar(n.AsVar()); err != nil {
@@ -399,6 +401,7 @@ func (q *checker) bcheckStatement(n *a.Node) error {
 	default:
 		return fmt.Errorf("check: unrecognized ast.Kind (%s) for bcheckStatement", n.Kind())
 	}
+	n.SetMBounds(bounds{zero, zero})
 	return nil
 }
 
@@ -754,6 +757,7 @@ func (q *checker) unify(branches [][]*a.Expr) error {
 func (q *checker) bcheckIf(n *a.If) error {
 	branches := [][]*a.Expr(nil)
 	for n != nil {
+		n.AsNode().SetMBounds(bounds{zero, zero})
 		snap := snapshot(q.facts)
 		// Check the if condition.
 		if _, err := q.bcheckExpr(n.Condition(), 0); err != nil {
@@ -1165,10 +1169,10 @@ func (q *checker) bcheckExprCall(n *a.Expr, depth uint32) error {
 	}
 
 	recv := lhs.LHS().AsExpr()
-	if recv.MType().Decorator() != t.IDNptr {
-		return nil
+	if recv != nil && recv.MType() != nil && recv.MType().Decorator() == t.IDNptr {
+		return q.proveRecvNotEqNullptr(recv)
 	}
-	return q.proveRecvNotEqNullptr(recv)
+	return nil
 }
 
 var errNotASpecialCase = errors.New("not a special case")
@@ -1180,10 +1184,11 @@ func (q *checker) bcheckExprCallSpecialCases(n *a.Expr, depth uint32) (bounds, e
 
 	actualAdvanceIsAlwaysPositive, advance, advanceExpr, update := false, (*big.Int)(nil), (*a.Expr)(nil), false
 
-	if recvTyp := recv.MType(); recvTyp == nil {
+	if recv == nil || recv.MType() == nil {
 		return bounds{}, errNotASpecialCase
-
-	} else if recvTyp.IsNumType() {
+	}
+	recvTyp := recv.MType()
+	if recvTyp.IsNumType() {
 		// For a numeric type's low_bits, etc. methods. The bound on the output
 		// is dependent on bound on the input, similar to dependent types, and
 		// isn't expressible in Wuffs' function syntax and type system.
@@ -1914,7 +1919,7 @@ func (q *checker) bcheckTypeExpr1(typ *a.TypeExpr) (bounds, error) {
 		return bounds{}, fmt.Errorf("check: internal error: unrecognized decorator")
 	}
 
-	b := bounds{zero, zero}
+	b := bounds{zero, numTypeBounds[t.IDU64][1]}
 
 	if qid := typ.QID(); qid[0] == t.IDBase {
 		if qid[1] == t.IDDagger1 || qid[1] == t.IDDagger2 {

@@ -276,8 +276,8 @@ loop:
 				if c == quote {
 					break
 				} else if c == '\\' {
-					if quote == '"' {
-						return nil, nil, fmt.Errorf("token: backslash in \"-string at %s:%d", filename, line)
+					if j < len(src) {
+						j++
 					}
 				} else if c == '\n' {
 					return nil, nil, fmt.Errorf("token: expected final %c in string at %s:%d", quote, filename, line)

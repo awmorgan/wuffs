@@ -138,5 +138,27 @@ func resolveUse(usePath string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return os.ReadFile(filepath.Join(wuffsRoot, "gen", "wuffs", filepath.FromSlash(usePath)))
+	p := filepath.Join(wuffsRoot, "gen", "wuffs", filepath.FromSlash(usePath))
+	data, err := os.ReadFile(p)
+	if err == nil {
+		return data, nil
+	}
+	dirPath := filepath.Join(wuffsRoot, filepath.FromSlash(strings.TrimSuffix(usePath, ".wuffs")))
+	entries, err2 := os.ReadDir(dirPath)
+	if err2 == nil {
+		var combined []byte
+		for _, entry := range entries {
+			if strings.HasSuffix(entry.Name(), ".wuffs") {
+				b, err3 := os.ReadFile(filepath.Join(dirPath, entry.Name()))
+				if err3 == nil {
+					combined = append(combined, b...)
+					combined = append(combined, '\n')
+				}
+			}
+		}
+		if len(combined) > 0 {
+			return combined, nil
+		}
+	}
+	return nil, err
 }

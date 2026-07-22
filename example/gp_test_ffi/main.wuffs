@@ -13,5 +13,8 @@ pragma C.include "stdio.h"
 extern func puts!(s: ptr base.u8) base.u32
 
 pub func main!(env: base.env) base.status {
+    unsafe {{
+        puts!(s: "Hello from C FFI!")
+    }}
     return ok
 }

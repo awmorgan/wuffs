@@ -9,7 +9,6 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 pub func main!(env: base.env) base.status {
-    var stdout : base.io_writer
-    stdout = args.env.stdout()
+    args.env.print!(s: "Hello Wuffs GP\n")
     return ok
 }

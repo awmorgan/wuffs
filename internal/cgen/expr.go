@@ -13,6 +13,7 @@ package cgen
 import (
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 
 	a "github.com/google/wuffs/lang/ast"
@@ -79,7 +80,18 @@ func (g *gen) writeExprOther(b *buffer, n *a.Expr, sideEffectsOnly bool, depth u
 				b.writes(")")
 				return nil
 			}
-			return fmt.Errorf("unrecognized status %s", n.Str(g.tm))
+			raw := ident.Str(g.tm)
+			unescaped := raw
+			if u, ok := t.Unescape(raw); ok {
+				unescaped = u
+			}
+			if n.MType() != nil && n.MType().QID() == (t.QID{t.IDBase, t.IDStr}) {
+				b.printf("((wuffs_base__str){.ptr = (const uint8_t*)%s, .len = %d})",
+					strconv.Quote(unescaped), len(unescaped))
+			} else {
+				b.printf("(const char*)%s", strconv.Quote(unescaped))
+			}
+			return nil
 
 		} else if c, ok := g.scalarConstsMap[t.QID{0, n.Ident()}]; ok {
 			b.writes(c.Value().ConstValue().String())
@@ -543,6 +555,47 @@ func (g *gen) writeExprAssociativeOp(b *buffer, n *a.Expr, depth uint32) error {
 func (g *gen) writeExprUserDefinedCall(b *buffer, n *a.Expr, depth uint32) error {
 	method := n.LHS().AsExpr()
 	recv := method.LHS().AsExpr()
+	if recv == nil {
+		fnIdent := method.Ident()
+		fnName := fnIdent.Str(g.tm)
+		isExtern := false
+		for _, f := range g.files {
+			for _, tld := range f.TopLevelDecls() {
+				if tld.Kind() == a.KFunc && tld.AsFunc().FuncName() == fnIdent {
+					if tld.Flags().Extern() {
+						isExtern = true
+					}
+				}
+			}
+		}
+		if isExtern {
+			b.printf("%s(", fnName)
+			for i, o := range n.Args() {
+				if i > 0 {
+					b.writes(", ")
+				}
+				val := o.AsArg().Value()
+				if val.Ident().IsDQStrLiteral(g.tm) {
+					raw := val.Ident().Str(g.tm)
+					unescaped := raw
+					if u, ok := t.Unescape(raw); ok {
+						unescaped = u
+					}
+					b.printf("(const char*)%s", strconv.Quote(unescaped))
+				} else {
+					if err := g.writeExpr(b, val, false, depth); err != nil {
+						return err
+					}
+				}
+			}
+			b.writes(")")
+			return nil
+		} else {
+			b.printf("%s%s(", g.pkgPrefix, fnName)
+		}
+		return g.writeArgs(b, n.Args(), depth)
+	}
+
 	recvTyp, addr := recv.MType(), "&"
 	if p := recvTyp.Decorator(); p == t.IDNptr || p == t.IDPtr {
 		recvTyp, addr = recvTyp.Inner(), ""
@@ -556,10 +609,41 @@ func (g *gen) writeExprUserDefinedCall(b *buffer, n *a.Expr, depth uint32) error
 	pkgStr := g.packagePrefix(qid)
 	typStr := qid[1].Str(g.tm)
 	methodStr := method.Ident().Str(g.tm)
-	if (qid[0] == t.IDBase) && qid[1].IsRangeType() && strings.HasPrefix(methodStr, "get_") {
+	if method.AsNode().Flags().Extern() {
+		b.printf("%s(", methodStr)
+		for i, o := range n.Args() {
+			if i > 0 {
+				b.writes(", ")
+			}
+			val := o.AsArg().Value()
+			if val.Ident().IsDQStrLiteral(g.tm) {
+				raw := val.Ident().Str(g.tm)
+				unescaped := raw
+				if u, ok := t.Unescape(raw); ok {
+					unescaped = u
+				}
+				b.printf("(const char*)%s", strconv.Quote(unescaped))
+			} else {
+				if err := g.writeExpr(b, val, false, depth); err != nil {
+					return err
+				}
+			}
+		}
+		b.writes(")")
+		return nil
+	}
+
+	if (qid[0] == t.IDBase) && (qid[1] == t.IDUtility) {
+		pkgStr = "wuffs_base__"
+		typStr = ""
+	} else if (qid[0] == t.IDBase) && qid[1].IsRangeType() && strings.HasPrefix(methodStr, "get_") {
 		pkgStr = "wuffs_private_impl__"
 	}
-	b.printf("%s%s__%s(", pkgStr, typStr, methodStr)
+	if typStr == "" {
+		b.printf("%s%s(", pkgStr, methodStr)
+	} else {
+		b.printf("%s%s__%s(", pkgStr, typStr, methodStr)
+	}
 
 	if !recvTyp.IsEtcUtilityType() {
 		b.writes(addr)

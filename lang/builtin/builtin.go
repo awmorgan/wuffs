@@ -412,6 +412,9 @@ var funcsOther = [...]string{
 	"env.stdout() io_writer",
 	"env.stderr() io_writer",
 	"env.args() slice u8",
+	"env.arg_count() u32",
+	"env.arg(i: u32) str",
+	"env.print!(s: str)",
 
 	// ---- utility
 

@@ -65,6 +65,9 @@ func (k *funk) jumpTarget(tm *t.Map, n a.Loop) (string, error) {
 }
 
 func (g *gen) funcCName(n *a.Func) string {
+	if n.AsNode().Flags().Extern() {
+		return n.FuncName().Str(g.tm)
+	}
 	if r := n.Receiver(); !r.IsZero() {
 		// TODO: this isn't right if r[0] != 0, i.e. the receiver is from a
 		// used package. There might be similar cases elsewhere in this
@@ -201,6 +204,9 @@ func (g *gen) writeFuncSignature(b *buffer, n *a.Func, wfs uint32) error {
 }
 
 func (g *gen) writeFuncPrototype(b *buffer, n *a.Func) error {
+	if n.AsNode().Flags().Extern() {
+		return nil
+	}
 	caMacro, _, _, err := cpuArchCNames(n.Asserts())
 	if err != nil {
 		return err

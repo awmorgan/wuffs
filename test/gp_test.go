@@ -36,37 +36,39 @@ func TestGeneralPurposeApplications(tt *testing.T) {
 	testCases := []struct {
 		name       string
 		wuffsPath  string
+		args       []string
 		wantStdout string
 	}{
 		{
 			name:       "gp_test_args",
 			wuffsPath:  "../example/gp_test_args/main.wuffs",
-			wantStdout: "",
+			args:       []string{"hello-arg"},
+			wantStdout: "hello-arg\n",
 		},
 		{
 			name:       "gp_test_arena",
 			wuffsPath:  "../example/gp_test_arena/main.wuffs",
-			wantStdout: "",
+			wantStdout: "Arena test passed\n",
 		},
 		{
 			name:       "gp_test_str",
 			wuffsPath:  "../example/gp_test_str/main.wuffs",
-			wantStdout: "",
+			wantStdout: "Hello Wuffs GP\n",
 		},
 		{
 			name:       "gp_test_packages",
 			wuffsPath:  "../example/gp_test_packages/main.wuffs",
-			wantStdout: "",
+			wantStdout: "Packages test passed\n",
 		},
 		{
 			name:       "gp_test_ffi",
 			wuffsPath:  "../example/gp_test_ffi/main.wuffs",
-			wantStdout: "",
+			wantStdout: "Hello from C FFI!\n",
 		},
 		{
 			name:       "imageinfo",
 			wuffsPath:  "../example/imageinfo/main.wuffs",
-			wantStdout: "",
+			wantStdout: "Imageinfo initialized\n",
 		},
 	}
 
@@ -75,21 +77,22 @@ func TestGeneralPurposeApplications(tt *testing.T) {
 		wuffsCBin = filepath.Join("..", "bin", "wuffs-c")
 	}
 
-	baseCPath := filepath.Join("..", "gen", "c", "wuffs-base.c")
-	baseData, err := os.ReadFile(baseCPath)
-	if err != nil {
-		tt.Fatalf("Failed to read gen/c/wuffs-base.c: %v", err)
-	}
-
 	for _, tc := range testCases {
 		tt.Run(tc.name, func(t *testing.T) {
 			tempDir := t.TempDir()
 			cFile := filepath.Join(tempDir, tc.name+".c")
 			exeFile := filepath.Join(tempDir, tc.name+".exe")
 
-			// Copy wuffs-base.c into tempDir so #include "./wuffs-base.c" resolves cleanly
-			if err := os.WriteFile(filepath.Join(tempDir, "wuffs-base.c"), baseData, 0644); err != nil {
-				t.Fatalf("Failed to copy wuffs-base.c to tempDir: %v", err)
+			// Copy all generated C files from gen/c into tempDir
+			if genCDir, err := os.ReadDir(filepath.Join("..", "gen", "c")); err == nil {
+				for _, entry := range genCDir {
+					if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".c") {
+						data, err := os.ReadFile(filepath.Join("..", "gen", "c", entry.Name()))
+						if err == nil {
+							_ = os.WriteFile(filepath.Join(tempDir, entry.Name()), data, 0644)
+						}
+					}
+				}
 			}
 
 			// Transpile Wuffs source to C
@@ -100,7 +103,7 @@ func TestGeneralPurposeApplications(tt *testing.T) {
 			}
 
 			// Include base headers first, define WUFFS_IMPLEMENTATION, include transpiled cOut, and append C main wrapper
-			headerPrefix := []byte("#include \"./wuffs-base.c\"\n#include \"wuffs_os.h\"\n#define WUFFS_IMPLEMENTATION\n\n")
+			headerPrefix := []byte("#define WUFFS_NONMONOLITHIC\n#define WUFFS_IMPLEMENTATION\n#include \"./wuffs-base.c\"\n#include \"wuffs_os.h\"\n\n")
 			mainWrapper := []byte("\n\nint main(int argc, char** argv) {\n" +
 				"    (void)argc;\n" +
 				"    (void)argv;\n" +
@@ -130,7 +133,7 @@ func TestGeneralPurposeApplications(tt *testing.T) {
 				t.Fatalf("C compilation failed: %v\nOutput:\n%s", err, string(compOut))
 			}
 
-			cmdRun := exec.Command(exeFile)
+			cmdRun := exec.Command(exeFile, tc.args...)
 			runOut, err := cmdRun.CombinedOutput()
 			if err != nil {
 				t.Fatalf("Execution failed: %v\nOutput:\n%s", err, string(runOut))

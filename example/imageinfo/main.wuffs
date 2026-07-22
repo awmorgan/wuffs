@@ -8,6 +8,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use "std/gif"
+
 pub func main!(env: base.env) base.status {
+    var dec : gif.decoder
+    args.env.print!(s: "Imageinfo initialized\n")
     return ok
 }

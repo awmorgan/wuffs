@@ -10,12 +10,11 @@
 
 pub func main!(env: base.env) base.status {
     var storage : base.arena
-    var stdout  : base.io_writer
     var m1      : base.u64
 
-    stdout = args.env.stdout()
     m1 = storage.mark()
     storage.release!(mark: m1)
+    args.env.print!(s: "Arena test passed\n")
 
     return ok
 }

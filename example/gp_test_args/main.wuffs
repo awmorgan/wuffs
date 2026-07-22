@@ -9,5 +9,13 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
 pub func main!(env: base.env) base.status {
+    var count : base.u32
+    count = args.env.arg_count()
+    if count > 1 {
+        args.env.print!(s: args.env.arg(i: 1))
+        args.env.print!(s: "\n")
+    } else {
+        args.env.print!(s: "No arguments\n")
+    }
     return ok
 }

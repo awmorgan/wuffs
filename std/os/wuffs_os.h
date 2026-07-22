@@ -79,6 +79,29 @@ static inline wuffs_base__io_buffer* wuffs_base__env__stdout(wuffs_base__env* se
     return &buf;
 }
 
+static inline void wuffs_base__env__print(wuffs_base__env* self, wuffs_base__str s) {
+    (void)self;
+    if (s.ptr && s.len > 0) {
+        fwrite(s.ptr, 1, s.len, stdout);
+        fflush(stdout);
+    }
+}
+
+static inline uint32_t wuffs_base__env__arg_count(wuffs_base__env* self) {
+    return self ? (uint32_t)self->argc : 0;
+}
+
+static inline wuffs_base__str wuffs_base__env__arg(wuffs_base__env* self, uint32_t i) {
+    wuffs_base__str ret;
+    ret.ptr = NULL;
+    ret.len = 0;
+    if (self && ((int)i < self->argc) && self->argv && self->argv[(int)i]) {
+        ret.ptr = (const uint8_t*)self->argv[(int)i];
+        ret.len = (uint32_t)strlen(self->argv[(int)i]);
+    }
+    return ret;
+}
+
 #ifdef __cplusplus
 }
 #endif

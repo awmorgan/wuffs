@@ -8,6 +8,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+use "std/crc32"
+
 pub func main!(env: base.env) base.status {
+    var hasher : crc32.ieee_hasher
+    var sum    : base.u32
+    sum = hasher.update_u32!(x: utility.empty_slice_u8())
+    args.env.print!(s: "Packages test passed\n")
     return ok
 }

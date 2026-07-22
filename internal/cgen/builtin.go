@@ -31,6 +31,9 @@ func (g *gen) writeBuiltinCall(b *buffer, n *a.Expr, sideEffectsOnly bool, depth
 	}
 	method := n.LHS().AsExpr()
 	recv := method.LHS().AsExpr()
+	if recv == nil {
+		return errNoSuchBuiltin
+	}
 	recvTyp := recv.MType()
 
 	switch recvTyp.Decorator() {

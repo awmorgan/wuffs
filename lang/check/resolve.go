@@ -201,10 +201,13 @@ func (c *Checker) resolveFunc(typ *a.TypeExpr) (*a.Func, error) {
 		return nil, fmt.Errorf("check: resolveFunc cannot look up non-func TypeExpr %q", typ.Str(c.tm))
 	}
 	lTyp := typ.Receiver()
-	lQID := lTyp.QID()
+	lQID := t.QID{}
+	if lTyp != nil {
+		lQID = lTyp.QID()
+	}
 	qqid := t.QQID{lQID[0], lQID[1], typ.FuncName()}
 
-	if lTyp.IsEitherSliceType() {
+	if lTyp != nil && lTyp.IsEitherSliceType() {
 		qqid[0] = t.IDBase
 		qqid[1] = t.IDDagger1
 		if f := c.builtInSliceFuncs[qqid]; f != nil {
@@ -220,7 +223,7 @@ func (c *Checker) resolveFunc(typ *a.TypeExpr) (*a.Func, error) {
 			}
 		}
 
-	} else if lTyp.IsEitherTableType() {
+	} else if lTyp != nil && lTyp.IsEitherTableType() {
 		qqid[0] = t.IDBase
 		qqid[1] = t.IDDagger2
 		if f := c.builtInTableFuncs[qqid]; f != nil {

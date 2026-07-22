@@ -908,6 +908,9 @@ func (c *Checker) checkAllTypeChecked(node *a.Node) error {
 		}
 	}
 	for _, v := range c.funcs {
+		if v.QQID()[0] != 0 {
+			continue
+		}
 		if err := allTypeChecked(c.tm, v.AsNode()); err != nil {
 			return err
 		}
@@ -922,6 +925,9 @@ func (c *Checker) checkAllTypeChecked(node *a.Node) error {
 		}
 	}
 	for _, v := range c.structs {
+		if v.QID()[0] != 0 {
+			continue
+		}
 		if err := allTypeChecked(c.tm, v.AsNode()); err != nil {
 			return err
 		}

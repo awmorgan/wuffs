@@ -694,7 +694,7 @@ var (
 )
 
 func (g *gen) genIncludes(b *buffer) error {
-	b.writes("#if defined(WUFFS_IMPLEMENTATION) && !defined(WUFFS_CONFIG__MODULES)\n")
+	b.writes("#if defined(WUFFS_IMPLEMENTATION)\n")
 	b.writes("#define WUFFS_CONFIG__MODULES\n")
 	b.printf("#define WUFFS_CONFIG__MODULE__%s\n", g.PKGNAME)
 	b.writes("#define WUFFS_NONMONOLITHIC\n")

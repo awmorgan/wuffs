@@ -339,7 +339,9 @@ func (q *checker) tcheckAssert(n *a.Assert) error {
 func (q *checker) tcheckEq(lID t.ID, lhs *a.Expr, lTyp *a.TypeExpr, rhs *a.Expr, rTyp *a.TypeExpr) error {
 	if (rTyp.IsIdeal() && lTyp.IsNumType()) ||
 		(lTyp.EqIgnoringRefinementsLHSReadOnly(rTyp)) ||
-		(rTyp.IsNullptr() && lTyp.Decorator() == t.IDNptr) {
+		(rTyp.IsNullptr() && lTyp.Decorator() == t.IDNptr) ||
+		(rTyp.Eq(typeExprStr) && (lTyp.Decorator() == t.IDPtr || lTyp.Decorator() == t.IDNptr) && lTyp.Inner().IsNumType()) ||
+		(lTyp.Eq(typeExprStr) && (rTyp.Decorator() == t.IDPtr || rTyp.Decorator() == t.IDNptr) && rTyp.Inner().IsNumType()) {
 		return nil
 	}
 	lStr := "???"
@@ -402,6 +404,10 @@ func (q *checker) tcheckAssign(n *a.Assign) error {
 			return fmt.Errorf("check: assignment %q: %q, of type %q, does not have unsigned integer type",
 				n.Operator().Str(q.tm), lhs.Str(q.tm), lTyp.Str(q.tm))
 		}
+	}
+
+	if (lTyp.IsPointerType() || lTyp.Eq(typeExprStr)) && (rTyp.IsPointerType() || rTyp.Eq(typeExprStr)) {
+		return nil
 	}
 
 	if !(rTyp.IsIdeal() && lTyp.IsNumType()) && !lTyp.EqIgnoringRefinementsLHSReadOnly(rTyp) {
@@ -486,10 +492,13 @@ func (q *checker) tcheckExprOther(n *a.Expr, depth uint32) error {
 			return nil
 
 		} else if id1.IsDQStrLiteral(q.tm) {
-			if _, ok := q.c.statuses[t.QID{0, n.Ident()}]; !ok {
-				return fmt.Errorf("check: unrecognized status %s", n.Ident().Str(q.tm))
+			if _, ok := q.c.statuses[t.QID{0, n.Ident()}]; ok {
+				n.SetMType(typeExprStatus)
+				return nil
 			}
-			n.SetMType(typeExprStatus)
+			setPlaceholderMBoundsMType(typeExprStr.AsNode())
+			n.SetMType(typeExprStr)
+			n.SetMBounds(bounds{one, maxPointerBounds})
 			return nil
 
 		} else if id1.IsIdent(q.tm) {
@@ -521,6 +530,10 @@ func (q *checker) tcheckExprOther(n *a.Expr, depth uint32) error {
 		case t.IDNothing:
 			n.SetConstValue(zero)
 			n.SetMType(typeExprEmptyStruct)
+			return nil
+
+		case t.IDUtility:
+			n.SetMType(typeExprUtility)
 			return nil
 
 		case t.IDNullptr:
@@ -631,6 +644,10 @@ func (q *checker) tcheckExprOther(n *a.Expr, depth uint32) error {
 
 func (q *checker) tcheckExprXDotY(n *a.Expr, x t.ID, y t.ID) error {
 	qid := t.QID{x, y}
+	if y == t.IDUtility {
+		n.SetMType(typeExprUtility)
+		return nil
+	}
 	if c, ok := q.c.consts[qid]; ok {
 		// TODO: check somewhere that a global ident (i.e. a const) is
 		// not directly in the LHS of an assignment.
@@ -641,6 +658,12 @@ func (q *checker) tcheckExprXDotY(n *a.Expr, x t.ID, y t.ID) error {
 	}
 	if _, ok := q.c.statuses[t.QID{x, y}]; ok {
 		n.SetMType(typeExprStatus)
+		return nil
+	}
+	if f, ok := q.c.funcs[t.QQID{x, 0, y}]; ok {
+		typ := a.NewTypeExpr(t.IDFunc, 0, f.FuncName(), nil, nil, nil)
+		setPlaceholderMBoundsMType(typ.AsNode())
+		n.SetMType(typ)
 		return nil
 	}
 	// TODO: look in q.c.structs.
