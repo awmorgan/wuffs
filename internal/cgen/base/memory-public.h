@@ -96,3 +96,9 @@ typedef struct {
   uint32_t       len;
 } wuffs_base__str;
 
+typedef struct {
+  int argc;
+  char** argv;
+} wuffs_base__env;
+
+

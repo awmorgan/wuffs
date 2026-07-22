@@ -113,3 +113,19 @@ But before sending a Pull Request, do this:
 ```
 ./build-all.sh
 ```
+
+## General-Purpose Applications & C Compiler Detection
+
+To transpile and run standalone general-purpose Wuffs applications, a C99-compliant compiler (`clang`, `gcc`, or `cl`) is required.
+
+Auto-detection checks:
+1. `CC` environment variable (e.g. `export CC=clang`).
+2. `clang` in `PATH`.
+3. `gcc` in `PATH`.
+4. `cl` (Visual Studio Command Prompt) in `PATH`.
+
+To run the end-to-end integration test suite:
+```
+go test ./test -v
+```
+

@@ -1,0 +1,21 @@
+// Copyright 2026 The Wuffs Authors.
+//
+// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+// https://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+// <LICENSE-MIT or https://opensource.org/licenses/MIT>, at your
+// option. This file may not be copied, modified, or distributed
+// except according to those terms.
+//
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+
+pub func main!(env: base.env) base.status {
+    var storage : base.arena
+    var stdout  : base.io_writer
+    var m1      : base.u64
+
+    stdout = args.env.stdout()
+    m1 = storage.mark()
+    storage.release!(mark: m1)
+
+    return ok
+}
