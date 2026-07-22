@@ -289,11 +289,14 @@ func (q *checker) tcheckStatement(n *a.Node) error {
 
 	case a.KUnsafe:
 		n := n.AsUnsafe()
+		q.unsafeDepth++
 		for _, o := range n.Body() {
 			if err := q.tcheckStatement(o); err != nil {
+				q.unsafeDepth--
 				return err
 			}
 		}
+		q.unsafeDepth--
 
 	case a.KPragma:
 		// No-op for pragma statements.
@@ -340,8 +343,8 @@ func (q *checker) tcheckEq(lID t.ID, lhs *a.Expr, lTyp *a.TypeExpr, rhs *a.Expr,
 	if (rTyp.IsIdeal() && lTyp.IsNumType()) ||
 		(lTyp.EqIgnoringRefinementsLHSReadOnly(rTyp)) ||
 		(rTyp.IsNullptr() && lTyp.Decorator() == t.IDNptr) ||
-		(rTyp.Eq(typeExprStr) && (lTyp.Decorator() == t.IDPtr || lTyp.Decorator() == t.IDNptr) && lTyp.Inner().IsNumType()) ||
-		(lTyp.Eq(typeExprStr) && (rTyp.Decorator() == t.IDPtr || rTyp.Decorator() == t.IDNptr) && rTyp.Inner().IsNumType()) {
+		(rTyp.Eq(typeExprStr) && isU8PointerType(lTyp)) ||
+		(lTyp.Eq(typeExprStr) && isU8PointerType(rTyp)) {
 		return nil
 	}
 	lStr := "???"
@@ -352,6 +355,10 @@ func (q *checker) tcheckEq(lID t.ID, lhs *a.Expr, lTyp *a.TypeExpr, rhs *a.Expr,
 	}
 	return fmt.Errorf("check: cannot assign %q of type %q to %q of type %q",
 		rhs.Str(q.tm), rTyp.Str(q.tm), lStr, lTyp.Str(q.tm))
+}
+
+func isU8PointerType(typ *a.TypeExpr) bool {
+	return typ.IsPointerType() && typ.Inner().Decorator() == 0 && typ.Inner().Eq(typeExprU8)
 }
 
 func (q *checker) tcheckAssign(n *a.Assign) error {
@@ -678,6 +685,10 @@ func (q *checker) tcheckExprCall(n *a.Expr, depth uint32) error {
 	f, err := q.c.resolveFunc(lhs.MType())
 	if err != nil {
 		return err
+	}
+	if f.AsNode().Flags().Extern() && q.unsafeDepth == 0 {
+		return fmt.Errorf("check: extern function %q may only be called inside an unsafe block",
+			f.QQID().Str(q.tm))
 	}
 	if ne, fe := n.Effect(), f.Effect(); ne != fe {
 		return fmt.Errorf("check: %q has effect %q but %q has effect %q",

@@ -16,9 +16,8 @@ Standalone Wuffs applications define a `main!` entry point that receives system 
 
 ```wuffs
 pub func main!(env: base.env) base.status {
-    var stdout : base.io_writer
-    stdout = args.env.stdout()
-    // Perform safe streaming I/O...
+    args.env.print!(s: "Hello from Wuffs\n")
+    args.env.print_err!(s: "diagnostic output\n")
     return ok
 }
 ```
@@ -28,13 +27,13 @@ To manage temporary memory without dynamic allocation or raw pointers, Wuffs use
 
 ```wuffs
 pub func main!(env: base.env) base.status {
-    var storage : base.arena[4096]
+    var storage : base.arena
     
     // Save checkpoint
     var mark : base.u64
     mark = storage.mark()
     
-    // Perform operations...
+    // Perform operations using the arena runtime.
     
     // Restore checkpoint
     storage.release!(mark: mark)
@@ -43,10 +42,12 @@ pub func main!(env: base.env) base.status {
 ```
 
 ### 3. Handle-Based Vectors (`base.vec`)
-Dynamic collections are represented as bounded vectors (`base.vec`). Vector capacity is constrained at compile-time to maintain range-proof facts:
+Dynamic collections are represented as bounded vectors (`base.vec`). The vector
+runtime is still being expanded; the current branch exposes the bounded handle
+and length/capacity queries while mutation and allocation APIs are developed.
 
 ```wuffs
-var v : base.vec[base.u32, 16]
+var v : base.vec
 ```
 
 ### 4. UTF-8 String Views (`base.str`)

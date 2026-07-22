@@ -467,10 +467,6 @@ func (p *parser) parseIdent() (t.ID, error) {
 	x := p.src[0]
 	if !x.ID.IsIdent(p.tm) {
 		got := p.tm.ByID(x.ID)
-		fmt.Printf("DEBUG parseIdent error at %s:%d: got %q, ID=0x%X (len src=%d)\n", p.filename, p.line(), got, uint32(x.ID), len(p.src))
-		for i := 0; i < len(p.src) && i < 5; i++ {
-			fmt.Printf("  src[%d] = ID 0x%X (%q)\n", i, uint32(p.src[i].ID), p.tm.ByID(p.src[i].ID))
-		}
 		return 0, fmt.Errorf(`parse: expected identifier, got %q at %s:%d`, got, p.filename, p.line())
 	}
 	p.src = p.src[1:]

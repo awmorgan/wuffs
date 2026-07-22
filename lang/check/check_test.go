@@ -319,3 +319,72 @@ func TestBuiltInTypeMap(tt *testing.T) {
 		}
 	}
 }
+
+func TestUnsafeExternCalls(tt *testing.T) {
+	testCases := []struct {
+		name    string
+		source  string
+		wantErr string
+	}{
+		{
+			name: "requires unsafe",
+			source: `extern func puts!(s: ptr base.u8) base.u32
+
+pub func main!(env: base.env) base.status {
+    puts!(s: "hello")
+    return ok
+}
+`,
+			wantErr: "may only be called inside an unsafe block",
+		},
+		{
+			name: "allows unsafe",
+			source: `extern func puts!(s: ptr base.u8) base.u32
+
+pub func main!(env: base.env) base.status {
+    unsafe {{
+        puts!(s: "hello")
+    }}
+    return ok
+}
+`,
+		},
+		{
+			name: "rejects non-u8 pointer",
+			source: `extern func take!(p: ptr base.u32) base.u32
+
+pub func main!(env: base.env) base.status {
+    unsafe {{
+        take!(p: "hello")
+    }}
+    return ok
+}
+`,
+			wantErr: "cannot assign",
+		},
+	}
+
+	for _, tc := range testCases {
+		tt.Run(tc.name, func(test *testing.T) {
+			tm := &t.Map{}
+			tokens, _, err := t.Tokenize(tm, "unsafe-extern.wuffs", []byte(tc.source))
+			if err != nil {
+				test.Fatalf("Tokenize: %v", err)
+			}
+			file, err := parse.Parse(tm, "unsafe-extern.wuffs", tokens, nil)
+			if err != nil {
+				test.Fatalf("Parse: %v", err)
+			}
+			_, err = Check(tm, []*a.File{file}, nil)
+			if tc.wantErr == "" {
+				if err != nil {
+					test.Fatalf("Check: %v", err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tc.wantErr) {
+				test.Fatalf("Check error = %v, want substring %q", err, tc.wantErr)
+			}
+		})
+	}
+}

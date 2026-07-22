@@ -11,6 +11,7 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,8 +34,13 @@ func TestBuildAndRunApplication(t *testing.T) {
 pub func main!(env: base.env) base.status {
     var hasher : crc32.ieee_hasher
     var sum    : base.u32
+    var msg    : base.str
+    var bytes  : roslice base.u8
     sum = hasher.update_u32!(x: utility.empty_slice_u8())
+    msg = "build works\n"
+    bytes = msg.as_slice()
     args.env.print!(s: "build works\n")
+    args.env.print_err!(s: "build warning\n")
     return ok
 }
 `
@@ -51,12 +57,18 @@ pub func main!(env: base.env) base.status {
 		t.Fatalf("executable = %q, want %q", result.executable, output)
 	}
 
-	got, err := exec.Command(result.executable).CombinedOutput()
+	var stderr bytes.Buffer
+	cmd := exec.Command(result.executable)
+	cmd.Stderr = &stderr
+	got, err := cmd.Output()
 	if err != nil {
-		t.Fatalf("running generated application: %v\n%s", err, got)
+		t.Fatalf("running generated application: %v\nstdout=%s\nstderr=%s", err, got, stderr.String())
 	}
 	if strings.ReplaceAll(string(got), "\r\n", "\n") != "build works\n" {
 		t.Fatalf("output = %q, want %q", got, "build works\n")
+	}
+	if got := strings.ReplaceAll(stderr.String(), "\r\n", "\n"); got != "build warning\n" {
+		t.Fatalf("stderr = %q, want %q", got, "build warning\n")
 	}
 
 	stageRoot := filepath.Join(projectDir, "build", ".wuffs")

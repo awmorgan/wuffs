@@ -48,6 +48,17 @@ static inline uint32_t wuffs_base__str__length(wuffs_base__str* self) {
     return self ? self->len : 0;
 }
 
+static inline wuffs_base__slice_u8 wuffs_base__str__as_slice(wuffs_base__str* self) {
+    wuffs_base__slice_u8 ret;
+    ret.ptr = NULL;
+    ret.len = 0;
+    if (self) {
+        ret.ptr = wuffs_base__strip_const_from_u8_ptr(self->ptr);
+        ret.len = self->len;
+    }
+    return ret;
+}
+
 static inline wuffs_base__str wuffs_base__str__from_c_string(const uint8_t* p) {
     wuffs_base__str ret;
     ret.ptr = p;
@@ -84,6 +95,14 @@ static inline void wuffs_base__env__print(wuffs_base__env* self, wuffs_base__str
     if (s.ptr && s.len > 0) {
         fwrite(s.ptr, 1, s.len, stdout);
         fflush(stdout);
+    }
+}
+
+static inline void wuffs_base__env__print_err(wuffs_base__env* self, wuffs_base__str s) {
+    (void)self;
+    if (s.ptr && s.len > 0) {
+        fwrite(s.ptr, 1, s.len, stderr);
+        fflush(stderr);
     }
 }
 

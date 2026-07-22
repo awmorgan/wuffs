@@ -991,11 +991,12 @@ func allTypeChecked(tm *t.Map, n *a.Node) error {
 }
 
 type checker struct {
-	c         *Checker
-	tm        *t.Map
-	reasonMap reasonMap
-	astFunc   *a.Func
-	localVars typeMap
+	c           *Checker
+	tm          *t.Map
+	reasonMap   reasonMap
+	astFunc     *a.Func
+	localVars   typeMap
+	unsafeDepth uint32
 
 	errFilename string
 	errLine     uint32

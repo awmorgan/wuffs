@@ -407,14 +407,12 @@ var funcsOther = [...]string{
 	"vec.capacity() u32",
 
 	"str.length() u32",
-	"str.as_slice() slice u8",
+	"str.as_slice() roslice u8",
 
-	"env.stdout() io_writer",
-	"env.stderr() io_writer",
-	"env.args() slice u8",
 	"env.arg_count() u32",
 	"env.arg(i: u32) str",
 	"env.print!(s: str)",
+	"env.print_err!(s: str)",
 
 	// ---- utility
 
