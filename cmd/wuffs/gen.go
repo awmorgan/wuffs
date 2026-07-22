@@ -142,12 +142,15 @@ func (h *genHelper) gen(dirname string, recursive bool) error {
 		return nil
 	}
 
-	if !cf.IsValidUsePath(dirname) {
-		return fmt.Errorf("invalid package path %q", dirname)
+	targetPath := dirname
+	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
+		targetPath = filepath.Join(h.wuffsRoot, filepath.FromSlash(dirname))
+	} else if strings.HasSuffix(targetPath, ".wuffs") {
+		packageName := strings.TrimSuffix(filepath.Base(targetPath), ".wuffs")
+		return h.genDir(packageName, []string{targetPath})
 	}
 
-	qualFilenames, dirnames, err := listDir(
-		filepath.Join(h.wuffsRoot, filepath.FromSlash(dirname)), ".wuffs", recursive)
+	qualFilenames, dirnames, err := listDir(targetPath, ".wuffs", recursive)
 	if err != nil {
 		return err
 	}
