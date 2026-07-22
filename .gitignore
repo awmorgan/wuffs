@@ -2,6 +2,7 @@
 *.out
 *~
 /gen
+/build
 /hello-wuffs-c/parse.c
 Cargo.lock
 perf.data

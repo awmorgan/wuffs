@@ -116,7 +116,21 @@ But before sending a Pull Request, do this:
 
 ## General-Purpose Applications & C Compiler Detection
 
-To transpile and run standalone general-purpose Wuffs applications, a C99-compliant compiler (`clang`, `gcc`, or `cl`) is required.
+The recommended workflow for a standalone application is:
+
+```
+wuffs init example.com/arthu/wuffs_app   # optional
+wuffs build
+wuffs run -- argument1 argument2
+```
+
+`wuffs build` stages generated C dependencies under `build/.wuffs`, invokes
+the detected C compiler, and writes the executable to `build/main` (or
+`build/main.exe` on Windows). The lower-level `wuffs-c gen` command only
+transpiles Wuffs source; it does not invoke the C compiler.
+
+To build a standalone general-purpose Wuffs application, a C99-compliant
+compiler (`clang`, `gcc`, or `cl`) is required.
 
 Auto-detection checks:
 1. `CC` environment variable (e.g. `export CC=clang`).

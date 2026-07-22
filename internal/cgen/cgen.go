@@ -16,6 +16,7 @@ import (
 	"flag"
 	"fmt"
 	"math/big"
+	"os"
 	"sort"
 	"strings"
 
@@ -113,11 +114,28 @@ var BaseSubModules = []string{
 //
 // The generated program is written to stdout.
 func Do(args []string) error {
+	out, err := Generate(args)
+	if err != nil {
+		return err
+	}
+	_, err = os.Stdout.Write(out)
+	return err
+}
+
+// Generate transpiles Wuffs source files to C and returns the generated
+// program. The generated program is not written to stdout.
+func Generate(args []string) ([]byte, error) {
+	return GenerateWithResolver(args, nil)
+}
+
+// GenerateWithResolver is like Generate, but uses resolveUse to resolve use
+// declarations. A nil resolver uses the normal Wuffs root directory lookup.
+func GenerateWithResolver(args []string, resolveUse func(string) ([]byte, error)) ([]byte, error) {
 	flags := flag.FlagSet{}
 	genlinenumFlag := flags.Bool("genlinenum", cf.GenlinenumDefault, cf.GenlinenumUsage)
 	standaloneFlag := flags.Bool("standalone", false, "whether to generate a standalone binary main wrapper")
 
-	return generate.Do(&flags, args, func(pkgName string, tm *t.Map, files []*a.File) ([]byte, error) {
+	return generate.GenerateWithResolver(&flags, args, func(pkgName string, tm *t.Map, files []*a.File) ([]byte, error) {
 		unformatted := []byte(nil)
 		if pkgName == "base" {
 			if len(files) != 0 {
@@ -187,6 +205,9 @@ func Do(args []string) error {
 			return unformatted, nil
 		}
 
+		if *standaloneFlag && pkgName != "main" {
+			return nil, fmt.Errorf("-standalone requires -package_name=main")
+		}
 		if *standaloneFlag || pkgName == "main" {
 			var buf bytes.Buffer
 			buf.WriteString("#define WUFFS_IMPLEMENTATION\n")
@@ -205,7 +226,7 @@ func Do(args []string) error {
 		}
 
 		return dumbindent.FormatBytes(nil, unformatted, nil), nil
-	})
+	}, resolveUse)
 }
 
 type visibility uint32

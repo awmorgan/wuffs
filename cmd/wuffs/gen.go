@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/google/wuffs/internal/cgen"
 	"github.com/google/wuffs/lang/generate"
 	"github.com/google/wuffs/lang/parse"
 
@@ -80,6 +81,7 @@ func doGenGenlib(wuffsRoot string, args []string, genlib bool) error {
 
 	h := genHelper{
 		wuffsRoot:   wuffsRoot,
+		outputRoot:  wuffsRoot,
 		langs:       langs,
 		genlinenum:  *genlinenumFlag,
 		skipgen:     genlib && *skipgenFlag,
@@ -111,11 +113,15 @@ func doGenGenlib(wuffsRoot string, args []string, genlib bool) error {
 
 type genHelper struct {
 	wuffsRoot   string
+	outputRoot  string
+	sourceRoot  string
 	langs       []string
 	ccompilers  string
 	genlinenum  bool
 	skipgen     bool
 	skipgendeps bool
+	resolveUse  func(string) ([]byte, error)
+	quiet       bool
 
 	affected []string
 	seen     map[string]struct{}
@@ -143,7 +149,16 @@ func (h *genHelper) gen(dirname string, recursive bool) error {
 	}
 
 	targetPath := dirname
+	if h.sourceRoot != "" && !filepath.IsAbs(targetPath) {
+		localPath := filepath.Join(h.sourceRoot, filepath.FromSlash(targetPath))
+		if _, err := os.Stat(localPath); err == nil {
+			targetPath = localPath
+		}
+	}
 	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
+		if h.wuffsRoot == "" {
+			return fmt.Errorf("cannot resolve Wuffs dependency %q: set WUFFS_ROOT or use a local package", dirname)
+		}
 		targetPath = filepath.Join(h.wuffsRoot, filepath.FromSlash(dirname))
 	} else if strings.HasSuffix(targetPath, ".wuffs") {
 		packageName := strings.TrimSuffix(filepath.Base(targetPath), ".wuffs")
@@ -195,20 +210,10 @@ func (h *genHelper) genDir(dirname string, qualFilenames []string) error {
 			cmdArgs = append(cmdArgs, fmt.Sprintf("-genlinenum=%t", h.genlinenum))
 		}
 		cmdArgs = append(cmdArgs, qualFilenames...)
-		stdout := &bytes.Buffer{}
-
-		cmd := exec.Command(command, cmdArgs...)
-		cmd.Stdin = nil
-		cmd.Stdout = stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err == nil {
-			// No-op.
-		} else if _, ok := err.(*exec.ExitError); ok {
-			return fmt.Errorf("%s failed, args=%q", command, cmdArgs)
-		} else {
+		out, err := h.generateLang(command, lang, cmdArgs)
+		if err != nil {
 			return err
 		}
-		out := stdout.Bytes()
 
 		flatDirname := fmt.Sprintf("wuffs-%s", strings.Replace(dirname, "/", "-", -1))
 		if err := h.genFile(flatDirname, lang, out); err != nil {
@@ -221,6 +226,32 @@ func (h *genHelper) genDir(dirname string, qualFilenames []string) error {
 		}
 	}
 	return nil
+}
+
+func (h *genHelper) generateLang(command string, lang string, args []string) ([]byte, error) {
+	if lang == "c" {
+		if len(args) == 0 || args[0] != "gen" {
+			return nil, fmt.Errorf("%s received malformed generation arguments %q", command, args)
+		}
+		out, err := cgen.GenerateWithResolver(args[1:], h.resolveUse)
+		if err != nil {
+			return nil, fmt.Errorf("%s failed, args=%q: %w", command, args, err)
+		}
+		return out, nil
+	}
+
+	stdout := &bytes.Buffer{}
+	cmd := exec.Command(command, args...)
+	cmd.Stdin = nil
+	cmd.Stdout = stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err == nil {
+		return stdout.Bytes(), nil
+	} else if _, ok := err.(*exec.ExitError); ok {
+		return nil, fmt.Errorf("%s failed, args=%q", command, args)
+	} else {
+		return nil, err
+	}
 }
 
 func (h *genHelper) genDirDependencies(qualifiedFilenames []string) error {
@@ -244,10 +275,17 @@ func (h *genHelper) genDirDependencies(qualifiedFilenames []string) error {
 }
 
 func (h *genHelper) genFile(dirname string, lang string, out []byte) error {
-	return writeFile(
-		filepath.Join(h.wuffsRoot, "gen", lang, filepath.FromSlash(dirname)+"."+lang),
-		out,
-	)
+	filename := filepath.Join(h.outputRoot, "gen", lang, filepath.FromSlash(dirname)+"."+lang)
+	if h.quiet {
+		if existing, err := os.ReadFile(filename); err == nil && bytes.Equal(existing, out) {
+			return nil
+		}
+		if err := os.MkdirAll(filepath.Dir(filename), 0755); err != nil {
+			return err
+		}
+		return os.WriteFile(filename, out, 0644)
+	}
+	return writeFile(filename, out)
 }
 
 func (h *genHelper) genWuffs(dirname string, qualifiedFilenames []string) error {

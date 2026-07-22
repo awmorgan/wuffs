@@ -41,7 +41,8 @@ Available Sub-commands:
 
 Examples:
   wuffs-c gen -package_name=main main.wuffs > app.c
-  wuffs-c gen -standalone -package_name=main main.wuffs > app.c
+
+Packages named main automatically receive the standalone C main wrapper.
 `
 
 func main1() error {

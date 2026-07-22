@@ -58,13 +58,34 @@ var msg : base.str = "Hello Wuffs"
 
 ---
 
-## Compiling & Testing
+## Building, Running & Testing
+
+The recommended application workflow is:
+
+```bash
+wuffs init example.com/arthu/wuffs_app  # optional
+wuffs build
+wuffs run -- arguments
+```
+
+`wuffs build` finds the `.wuffs` files in the current directory, generates
+their dependencies into a content-addressed `build/.wuffs` staging directory,
+and invokes `clang`, `gcc`, or `cl`. The default executable is written to
+`build/main` (or `build/main.exe` on Windows). Use `-o` to choose another
+output path. Base-only applications can be built without `WUFFS_ROOT`; a
+development checkout is still needed for applications that import standard
+library packages such as `std/crc32`.
 
 ### C Transpilation
-To transpile a standalone Wuffs program to C:
+
+The backend command remains available for low-level and debugging workflows:
+
 ```bash
 wuffs-c gen -package_name=main main.wuffs > main.c
 ```
+
+The `main` package automatically receives the standalone C entry-point
+wrapper. `wuffs-c` does not invoke the C compiler; `wuffs build` does that.
 
 ### C Compiler Requirements
 Compiling transpiled C binaries requires a C99-compliant compiler:

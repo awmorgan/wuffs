@@ -150,3 +150,6 @@ var EmbeddedString_DropInSTBC EmbeddedString
 
 //go:embed drop-in/stb.h
 var EmbeddedString_DropInSTBH EmbeddedString
+
+//go:embed runtime/wuffs_os.h
+var EmbeddedString_OSHeader EmbeddedString

@@ -30,8 +30,12 @@ var commands = []struct {
 	do   func(wuffsRoot string, args []string) error
 }{
 	{"bench", doBench},
+	{"build", doBuild},
+	{"clean", doClean},
 	{"gen", doGen},
 	{"genlib", doGenlib},
+	{"init", doInit},
+	{"run", doRun},
 	{"test", doTest},
 }
 
@@ -45,8 +49,12 @@ Usage:
 The commands are:
 
 	bench   benchmark packages
+	build   compile a general-purpose Wuffs application
+	clean   remove application build artifacts
 	gen     generate code for packages and dependencies
 	genlib  generate software libraries
+	init    initialize a Wuffs application module
+	run     compile and run a general-purpose Wuffs application
 	test    test packages
 
 Use "wuffs help <command>" for more information about a command.
@@ -63,12 +71,21 @@ func main() {
 func main1() error {
 	flag.Usage = usage
 	flag.Parse()
-
-	wuffsRoot, err := wuffsroot.Value()
-	if err != nil {
-		return err
+	if args := flag.Args(); len(args) > 0 && args[0] == "init" {
+		return doInit("", args[1:])
 	}
-	if args := flag.Args(); len(args) > 0 {
+
+	wuffsRoot := ""
+	args := flag.Args()
+	root, err := wuffsroot.Value()
+	if err != nil {
+		if len(args) == 0 || (args[0] != "build" && args[0] != "clean" && args[0] != "help" && args[0] != "run") {
+			return err
+		}
+	} else {
+		wuffsRoot = root
+	}
+	if len(args) > 0 {
 		for _, c := range commands {
 			if args[0] == c.name {
 				return c.do(wuffsRoot, args[1:])
