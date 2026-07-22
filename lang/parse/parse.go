@@ -115,6 +115,10 @@ func (p *parser) peek1() t.ID {
 func (p *parser) parseFile() (*a.File, error) {
 	topLevelDecls := []*a.Node(nil)
 	for len(p.src) > 0 {
+		if p.peek1() == t.IDSemicolon {
+			p.src = p.src[1:]
+			continue
+		}
 		d, err := p.parseTopLevelDecl()
 		if err != nil {
 			return nil, err
@@ -126,8 +130,15 @@ func (p *parser) parseFile() (*a.File, error) {
 
 func (p *parser) parseTopLevelDecl() (*a.Node, error) {
 	flags := a.Flags(0)
+	if len(p.src) == 0 {
+		return nil, nil
+	}
 	line := p.src[0].Line
 	switch k := p.peek1(); k {
+	case 0, t.IDSemicolon:
+		p.src = p.src[1:]
+		return nil, nil
+
 	case t.IDUse:
 		p.src = p.src[1:]
 		path := p.peek1()
@@ -141,7 +152,59 @@ func (p *parser) parseTopLevelDecl() (*a.Node, error) {
 			return nil, fmt.Errorf(`parse: expected (implicit) ";", got %q at %s:%d`, got, p.filename, p.line())
 		}
 		p.src = p.src[1:]
-		return a.NewUse(p.filename, line, path).AsNode(), nil
+	case t.IDPragma:
+		p.src = p.src[1:]
+		_, err := p.parseIdent()
+		if err != nil {
+			return nil, err
+		}
+		if p.peek1() == t.IDDot {
+			p.src = p.src[1:]
+		}
+		_, err = p.parseIdent()
+		if err != nil {
+			return nil, err
+		}
+		headerTok := p.peek1()
+		if !headerTok.IsDQStrLiteral(p.tm) {
+			return nil, fmt.Errorf(`parse: expected header string literal after pragma at %s:%d`, p.filename, p.line())
+		}
+		p.src = p.src[1:]
+		if x := p.peek1(); x == t.IDSemicolon {
+			p.src = p.src[1:]
+		}
+		headerStr, _ := t.Unescape(headerTok.Str(p.tm))
+		return a.NewPragma("#include \"" + headerStr + "\"").AsNode(), nil
+
+	case t.IDExtern:
+		p.src = p.src[1:]
+		if p.peek1() != t.IDFunc {
+			return nil, fmt.Errorf(`parse: expected "func" after "extern" at %s:%d`, p.filename, p.line())
+		}
+		p.src = p.src[1:]
+		id0, id1, err := p.parseQualifiedIdent()
+		if err != nil {
+			return nil, err
+		}
+		p.funcEffect = p.parseEffect()
+		flags |= a.FlagsExtern | p.funcEffect.AsFlags()
+		argFields, err := p.parseList(t.IDCloseParen, (*parser).parseFieldNode)
+		if err != nil {
+			return nil, err
+		}
+		out := (*a.TypeExpr)(nil)
+		if x := p.peek1(); (x != t.IDOpenCurly) && (x != t.IDComma) && (x != t.IDSemicolon) {
+			out, err = p.parseTypeExpr()
+			if err != nil {
+				return nil, err
+			}
+		}
+		if x := p.peek1(); x == t.IDSemicolon {
+			p.src = p.src[1:]
+		}
+		p.funcEffect = 0
+		in := a.NewStruct(0, p.filename, line, t.IDArgs, nil, argFields)
+		return a.NewFunc(flags, p.filename, line, id0, id1, in, out, nil, nil).AsNode(), nil
 
 	case t.IDPub:
 		flags |= a.FlagsPublic
@@ -405,6 +468,10 @@ func (p *parser) parseIdent() (t.ID, error) {
 	x := p.src[0]
 	if !x.ID.IsIdent(p.tm) {
 		got := p.tm.ByID(x.ID)
+		fmt.Printf("DEBUG parseIdent error at %s:%d: got %q, ID=0x%X (len src=%d)\n", p.filename, p.line(), got, uint32(x.ID), len(p.src))
+		for i := 0; i < len(p.src) && i < 5; i++ {
+			fmt.Printf("  src[%d] = ID 0x%X (%q)\n", i, uint32(p.src[i].ID), p.tm.ByID(p.src[i].ID))
+		}
 		return 0, fmt.Errorf(`parse: expected identifier, got %q at %s:%d`, got, p.filename, p.line())
 	}
 	p.src = p.src[1:]
@@ -875,6 +942,14 @@ func (p *parser) parseStatement1() (*a.Node, error) {
 			}
 		}
 		return a.NewRet(x, value).AsNode(), nil
+
+	case t.IDUnsafe:
+		p.src = p.src[1:]
+		body, err := p.parseBlock(true)
+		if err != nil {
+			return nil, err
+		}
+		return a.NewUnsafe(body).AsNode(), nil
 
 	case t.IDWhile:
 		p.src = p.src[1:]

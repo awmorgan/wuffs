@@ -70,6 +70,20 @@ func (g *gen) writeStatement(b *buffer, n *a.Node, depth uint32) error {
 		return nil
 	case a.KWhile:
 		return g.writeStatementWhile(b, n.AsWhile(), depth)
+	case a.KUnsafe:
+		n := n.AsUnsafe()
+		b.writes("{\n")
+		for _, o := range n.Body() {
+			if err := g.writeStatement(b, o, depth); err != nil {
+				return err
+			}
+		}
+		b.writes("}\n")
+		return nil
+	case a.KPragma:
+		n := n.AsPragma()
+		b.printf("%s\n", n.Line())
+		return nil
 	}
 	return fmt.Errorf("unrecognized ast.Kind (%s) for writeStatement", n.Kind())
 }

@@ -226,6 +226,10 @@ func (g *gen) writeFuncPrototype(b *buffer, n *a.Func) error {
 }
 
 func (g *gen) writeFuncImpl(b *buffer, n *a.Func) error {
+	if n.AsNode().Flags().Extern() {
+		return nil
+	}
+
 	k := g.funks[n.QQID()]
 
 	caMacro, caName, caAttribute, err := cpuArchCNames(n.Asserts())

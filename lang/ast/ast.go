@@ -53,6 +53,8 @@ const (
 	KUse
 	KVar
 	KWhile
+	KUnsafe
+	KPragma
 )
 
 func (k Kind) String() string {
@@ -85,6 +87,8 @@ var kindStrings = [...]string{
 	KUse:      "KUse",
 	KVar:      "KVar",
 	KWhile:    "KWhile",
+	KUnsafe:   "KUnsafe",
+	KPragma:   "KPragma",
 }
 
 type Flags uint32
@@ -105,7 +109,12 @@ const (
 	FlagsPrivateData      = Flags(0x00020000)
 	FlagsChoosy           = Flags(0x00040000)
 	FlagsHasChooseCPUArch = Flags(0x00080000)
+	FlagsExtern           = Flags(0x00100000)
+	FlagsUnsafe           = Flags(0x00200000)
 )
+
+func (f Flags) Extern() bool { return (f & FlagsExtern) != 0 }
+func (f Flags) Unsafe() bool { return (f & FlagsUnsafe) != 0 }
 
 func breakFlags(deep bool) Flags {
 	if deep {
@@ -206,6 +215,7 @@ type Node struct {
 }
 
 func (n *Node) Kind() Kind                     { return n.kind }
+func (n *Node) Flags() Flags                    { return n.flags }
 func (n *Node) MBounds() interval.IntRange     { return n.mBounds }
 func (n *Node) MType() *TypeExpr               { return n.mType }
 func (n *Node) SetMBounds(x interval.IntRange) { n.mBounds = x }
@@ -232,6 +242,8 @@ func (n *Node) AsTypeExpr() *TypeExpr { return (*TypeExpr)(n) }
 func (n *Node) AsUse() *Use           { return (*Use)(n) }
 func (n *Node) AsVar() *Var           { return (*Var)(n) }
 func (n *Node) AsWhile() *While       { return (*While)(n) }
+func (n *Node) AsUnsafe() *Unsafe     { return (*Unsafe)(n) }
+func (n *Node) AsPragma() *Pragma     { return (*Pragma)(n) }
 
 func (n *Node) Walk(f func(*Node) error) error {
 	if n != nil {
@@ -1304,3 +1316,28 @@ func Terminates(body []*Node) bool {
 	}
 	return false
 }
+
+type Unsafe Node
+
+func (n *Unsafe) AsNode() *Node  { return (*Node)(n) }
+func (n *Unsafe) Body() []*Node { return n.list0 }
+
+func NewUnsafe(body []*Node) *Unsafe {
+	return &Unsafe{
+		kind:  KUnsafe,
+		list0: body,
+	}
+}
+
+type Pragma Node
+
+func (n *Pragma) AsNode() *Node  { return (*Node)(n) }
+func (n *Pragma) Line() string   { return n.filename }
+
+func NewPragma(line string) *Pragma {
+	return &Pragma{
+		kind:     KPragma,
+		filename: line,
+	}
+}
+

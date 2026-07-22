@@ -30,7 +30,8 @@ func TestGeneralPurposeApplications(tt *testing.T) {
 		tt.Skipf("Skipping GP application execution test: %v", err)
 		return
 	}
-	tt.Logf("Using detected C compiler: %s (%s)", cc.Path, cc.Flavor)
+	hasSanitizers := cc.HasSanitizerSupport(tt.TempDir())
+	tt.Logf("Using detected C compiler: %s (%s, ASan/UBSan: %v)", cc.Path, cc.Flavor, hasSanitizers)
 
 	testCases := []struct {
 		name       string
@@ -50,6 +51,21 @@ func TestGeneralPurposeApplications(tt *testing.T) {
 		{
 			name:       "gp_test_str",
 			wuffsPath:  "../example/gp_test_str/main.wuffs",
+			wantStdout: "",
+		},
+		{
+			name:       "gp_test_packages",
+			wuffsPath:  "../example/gp_test_packages/main.wuffs",
+			wantStdout: "",
+		},
+		{
+			name:       "gp_test_ffi",
+			wuffsPath:  "../example/gp_test_ffi/main.wuffs",
+			wantStdout: "",
+		},
+		{
+			name:       "imageinfo",
+			wuffsPath:  "../example/imageinfo/main.wuffs",
 			wantStdout: "",
 		},
 	}
@@ -103,7 +119,12 @@ func TestGeneralPurposeApplications(tt *testing.T) {
 			if cc.Flavor == "cl" {
 				cmdCompile = exec.Command(cc.Path, "/Fe:"+exeFile, cFile, "/W4")
 			} else {
-				cmdCompile = exec.Command(cc.Path, "-Wall", "-Wextra", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wno-unused-but-set-variable", "-Werror", "-std=c99", "-I../std/os", "-o", exeFile, cFile)
+				flags := []string{"-Wall", "-Wextra", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wno-unused-but-set-variable", "-Wno-unused-function", "-Werror", "-std=c99", "-I../std/os"}
+				if hasSanitizers {
+					flags = append(flags, "-fsanitize=address,undefined")
+				}
+				flags = append(flags, "-o", exeFile, cFile)
+				cmdCompile = exec.Command(cc.Path, flags...)
 			}
 			if compOut, err := cmdCompile.CombinedOutput(); err != nil {
 				t.Fatalf("C compilation failed: %v\nOutput:\n%s", err, string(compOut))

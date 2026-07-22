@@ -727,6 +727,14 @@ func (g *gen) genIncludes(b *buffer) error {
 		b.printf("#include \"./wuffs-%s.c\"\n",
 			strings.Replace(use, "/", "-", -1))
 	}
+	for _, file := range g.files {
+		for _, tld := range file.TopLevelDecls() {
+			if tld.Kind() == a.KPragma {
+				b.writes(tld.AsPragma().Line())
+				b.writeb('\n')
+			}
+		}
+	}
 
 	b.writeb('\n')
 	return nil

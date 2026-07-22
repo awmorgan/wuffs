@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 type CCompiler struct {
@@ -44,4 +45,21 @@ func FindCCompiler() (*CCompiler, error) {
 
 	return nil, fmt.Errorf("no compatible C compiler (clang, gcc, or cl) found in PATH or CC env var.\n" +
 		"Please install Clang (e.g. LLVM) or GCC and add it to your PATH to run general-purpose binary tests.")
+}
+
+// HasSanitizerSupport probes whether the C compiler supports -fsanitize=address,undefined on the current target.
+func (c *CCompiler) HasSanitizerSupport(tempDir string) bool {
+	if c.Flavor == "cl" {
+		return false
+	}
+	dummyC := filepath.Join(tempDir, "probe_sanitizer.c")
+	dummyExe := filepath.Join(tempDir, "probe_sanitizer.exe")
+	if err := os.WriteFile(dummyC, []byte("int main(void) { return 0; }\n"), 0644); err != nil {
+		return false
+	}
+	cmd := exec.Command(c.Path, "-fsanitize=address,undefined", "-o", dummyExe, dummyC)
+	if err := cmd.Run(); err != nil {
+		return false
+	}
+	return true
 }

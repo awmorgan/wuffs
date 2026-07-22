@@ -385,6 +385,17 @@ func (q *checker) bcheckStatement(n *a.Node) error {
 			return err
 		}
 
+	case a.KUnsafe:
+		n := n.AsUnsafe()
+		if err := q.bcheckBlock(n.Body()); err != nil {
+			return err
+		}
+		// Invalidate facts upon exiting unsafe block to isolate fact solver
+		q.facts = nil
+
+	case a.KPragma:
+		// No-op.
+
 	default:
 		return fmt.Errorf("check: unrecognized ast.Kind (%s) for bcheckStatement", n.Kind())
 	}

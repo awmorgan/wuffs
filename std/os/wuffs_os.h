@@ -15,6 +15,12 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
+
+#ifdef _WIN32
+#include <io.h>
+#include <fcntl.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,7 +48,25 @@ static inline uint32_t wuffs_base__str__length(wuffs_base__str* self) {
     return self ? self->len : 0;
 }
 
+static inline wuffs_base__str wuffs_base__str__from_c_string(const uint8_t* p) {
+    wuffs_base__str ret;
+    ret.ptr = p;
+    ret.len = p ? (uint32_t)strlen((const char*)p) : 0;
+    return ret;
+}
+
+static inline wuffs_base__slice_u8 wuffs_base__slice_u8__from_ptr_len(uint8_t* p, uint32_t len) {
+    wuffs_base__slice_u8 ret;
+    ret.ptr = p;
+    ret.len = len;
+    return ret;
+}
+
 static inline wuffs_base__env wuffs_os__make_environment(int argc, char** argv) {
+#ifdef _WIN32
+    _setmode(_fileno(stdout), _O_BINARY);
+    _setmode(_fileno(stderr), _O_BINARY);
+#endif
     wuffs_base__env env;
     env.argc = argc;
     env.argv = argv;

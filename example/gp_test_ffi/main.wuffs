@@ -8,6 +8,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
+pragma C.include "stdio.h"
+
+extern func puts!(s: ptr base.u8) base.u32
+
 pub func main!(env: base.env) base.status {
     return ok
 }

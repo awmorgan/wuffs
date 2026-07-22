@@ -287,6 +287,17 @@ func (q *checker) tcheckStatement(n *a.Node) error {
 			return err
 		}
 
+	case a.KUnsafe:
+		n := n.AsUnsafe()
+		for _, o := range n.Body() {
+			if err := q.tcheckStatement(o); err != nil {
+				return err
+			}
+		}
+
+	case a.KPragma:
+		// No-op for pragma statements.
+
 	default:
 		return fmt.Errorf("check: unrecognized ast.Kind (%s) for tcheckStatement", n.Kind())
 	}

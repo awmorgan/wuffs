@@ -406,6 +406,9 @@ const (
 	IDCapability      = ID(0xCA)
 	IDEnv             = ID(0xCB)
 	IDStr             = ID(0xCC)
+	IDExtern          = ID(0xCD)
+	IDUnsafe          = ID(0xCE)
+	IDPragma          = ID(0xCF)
 )
 
 const (
@@ -862,6 +865,9 @@ var builtInsByID = [nBuiltInIDs]string{
 	IDCapability:      "capability",
 	IDEnv:             "env",
 	IDStr:             "str",
+	IDExtern:          "extern",
+	IDUnsafe:          "unsafe",
+	IDPragma:          "pragma",
 
 	IDArray:   "array",
 	IDNptr:    "nptr",
