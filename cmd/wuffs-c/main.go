@@ -27,12 +27,32 @@ func main() {
 	}
 }
 
+const usage = `wuffs-c is the C language backend for Wuffs.
+
+Usage:
+  wuffs-c <sub-command> [flags] [files...]
+
+Available Sub-commands:
+  gen        Transpiles Wuffs source files into C code.
+  test       Transpiles and runs C tests for Wuffs files.
+  bench      Transpiles and runs benchmarks.
+  genlib     Generates static C library outputs.
+  genrelease Builds monolithic release headers.
+
+Examples:
+  wuffs-c gen -package_name=main main.wuffs > app.c
+  wuffs-c gen -standalone -package_name=main main.wuffs > app.c
+`
+
 func main1() error {
 	if len(os.Args) < 2 {
-		return fmt.Errorf("no sub-command given")
+		return fmt.Errorf("%s\nerror: no sub-command given", usage)
 	}
 	args := os.Args[2:]
 	switch os.Args[1] {
+	case "help", "-h", "-help", "--help":
+		fmt.Print(usage)
+		return nil
 	case "bench":
 		return doBench(args)
 	case "gen":
@@ -44,5 +64,5 @@ func main1() error {
 	case "test":
 		return doTest(args)
 	}
-	return fmt.Errorf("bad sub-command %q", os.Args[1])
+	return fmt.Errorf("%s\nerror: bad sub-command %q", usage, os.Args[1])
 }
