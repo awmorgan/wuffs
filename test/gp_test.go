@@ -102,19 +102,7 @@ func TestGeneralPurposeApplications(tt *testing.T) {
 				t.Fatalf("Transpiling %s failed: %v", tc.wuffsPath, err)
 			}
 
-			// Include base headers first, define WUFFS_IMPLEMENTATION, include transpiled cOut, and append C main wrapper
-			headerPrefix := []byte("#define WUFFS_NONMONOLITHIC\n#define WUFFS_IMPLEMENTATION\n#include \"./wuffs-base.c\"\n#include \"wuffs_os.h\"\n\n")
-			mainWrapper := []byte("\n\nint main(int argc, char** argv) {\n" +
-				"    (void)argc;\n" +
-				"    (void)argv;\n" +
-				"    wuffs_base__env env = wuffs_os__make_environment(argc, argv);\n" +
-				"    wuffs_base__status status = wuffs_main__main(env);\n" +
-				"    if (wuffs_base__status__is_error(&status)) return 1;\n" +
-				"    return 0;\n" +
-				"}\n")
-
-			fullCData := append(headerPrefix, append(cOut, mainWrapper...)...)
-			if err := os.WriteFile(cFile, fullCData, 0644); err != nil {
+			if err := os.WriteFile(cFile, cOut, 0644); err != nil {
 				t.Fatalf("Failed to write C file: %v", err)
 			}
 
@@ -122,7 +110,7 @@ func TestGeneralPurposeApplications(tt *testing.T) {
 			if cc.Flavor == "cl" {
 				cmdCompile = exec.Command(cc.Path, "/Fe:"+exeFile, cFile, "/W4")
 			} else {
-				flags := []string{"-Wall", "-Wextra", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wno-unused-but-set-variable", "-Wno-unused-function", "-Werror", "-std=c99", "-I../std/os"}
+				flags := []string{"-Wall", "-Wextra", "-Wno-unused-parameter", "-Wno-unused-variable", "-Wno-unused-but-set-variable", "-Wno-unused-function", "-Werror", "-std=c99", "-I..", "-I../std/os"}
 				if hasSanitizers {
 					flags = append(flags, "-fsanitize=address,undefined")
 				}
