@@ -48,6 +48,12 @@ func Value() (string, error) {
 
 	const wrdTxt = "wuffs-root-directory.txt"
 
+	if envRoot := os.Getenv("WUFFS_ROOT"); envRoot != "" {
+		if _, err := os.Stat(filepath.Join(envRoot, wrdTxt)); err == nil {
+			return setValue(envRoot)
+		}
+	}
+
 	// Look for "w-r-d.txt" in the working directory or its ancestors.
 	for p, q := initialWorkingDirectory, ""; p != q; p, q = filepath.Dir(p), p {
 		if _, err := os.Stat(filepath.Join(p, wrdTxt)); err == nil {
